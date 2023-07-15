@@ -66,6 +66,12 @@ class MBAgent(BaseAgent):
             'Training Loss': avg_loss,
         }
 
+    def save(self, filepath):
+        for i in range(self.ensemble_size):
+            self.dyn_models[i].save(
+                filepath + '_dyn_model_{}'.format(i))
+        # self.actor.save(filepath + '_actor')
+
     def add_to_replay_buffer(self, paths, add_sl_noise=False):
 
         # add data to replay buffer

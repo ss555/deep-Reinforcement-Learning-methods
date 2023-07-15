@@ -70,8 +70,10 @@ def sample_trajectory(env, policy, max_path_length, render=False,render_mode='rg
                 time.sleep(env.model.opt.timestep)
 
         # use the most recent ob to decide what to do
+        # if len(ob.shape)>1:
+        #     ob=ob[0]
         obs.append(ob)
-        ac = policy.get_action(ob) # HINT: query the policy's get_action function
+        ac = policy.get_action(np.array(ob)) # HINT: query the policy's get_action function
         if len(ac.shape)!=1:
             ac=ac[0]
         acs.append(ac)
@@ -92,6 +94,21 @@ def sample_trajectory(env, policy, max_path_length, render=False,render_mode='rg
             break
 
     return Path(obs, image_obs, acs, rewards, next_obs, terminals)
+
+def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, render=False, render_mode=('rgb_array')):
+    """
+        Collect rollouts using policy
+        until we have collected min_timesteps_per_batch steps
+    """
+    # TODO: get this from hw1 or hw2
+    paths=[]
+    steps=0
+    while steps<min_timesteps_per_batch:
+        path=sample_trajectory(env,policy,max_path_length,render,render_mode)
+        paths.append(path)
+        steps+=get_pathlength(path)
+
+    return paths, steps
 
 def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, render=False, render_mode=('rgb_array')):
     """

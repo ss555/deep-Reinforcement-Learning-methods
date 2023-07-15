@@ -16,13 +16,13 @@ def register_envs():
         entry_point='cs285.envs.reacher:Reacher7DOFEnv',
         max_episode_steps=500,
     )
-    register(
-        id='FishStationary-v0',
-        entry_point='cs285.envs.fish:FishStationary',
-        max_episode_steps=768,
-    )
-    register(
-        id='FishMoving-v0',
-        entry_point='cs285.envs.fish:FishMoving',
-        max_episode_steps=768,
-    )
+    # register(
+    #     id='FishStationary-v0',
+    #     entry_point='cs285.envs.fish:FishStationary',
+    #     max_episode_steps=768,
+    # )
+    # register(
+    #     id='FishMoving-v0',
+    #     entry_point='cs285.envs.fish:FishMoving',
+    #     max_episode_steps=768,
+    # )

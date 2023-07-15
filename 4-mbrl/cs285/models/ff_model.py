@@ -147,3 +147,6 @@ class FFModel(nn.Module, BaseModel):
         return {
             'Training Loss': ptu.to_numpy(loss),
         }
+
+    def save(self, path):
+        torch.save(self.delta_network.state_dict(), path)

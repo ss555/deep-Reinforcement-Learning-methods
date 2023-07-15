@@ -9,7 +9,6 @@ class MBPO_Trainer(object):
         #####################
         ## SET AGENT PARAMS
         #####################
-
         mb_computation_graph_args = {
             'ensemble_size': params['ensemble_size'],
             'n_layers': params['n_layers'],
@@ -63,7 +62,6 @@ class MBPO_Trainer(object):
         ################
         ## RL TRAINER
         ################
-
         self.rl_trainer = RL_Trainer(self.params,trial)
 
     def run_training_loop(self):
@@ -83,7 +81,8 @@ def main():
     parser.add_argument('--ep_len', type=int, default=1000)
     parser.add_argument('--exp_name', type=str, default='todo')
     parser.add_argument('--n_iter', '-n', type=int, default=20)
-    parser.add_argument('--eval_batch_size', '-eb', type=int, default=400) #steps collected per eval iteration
+    parser.add_argument('--eval_eps', '-eps', type=int, default=2) #episodes collected per eval iteration
+    parser.add_argument('--eval_batch_size', '-eb', type=int, default=400)  #episodes collected per eval iteration
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--no_gpu', '-ngpu', action='store_true')
     parser.add_argument('--which_gpu', '-gpu_id', default=0)
@@ -138,8 +137,12 @@ def main():
     if params['env_name']=='obstacles-cs285-v0':
         params['ep_len']=100
 
+    ##################################
+    ### CREATE DIRECTORY FOR LOGGING
+    ##################################
 
     logdir_prefix = 'hw4_'  # keep for autograder
+
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../data')
 
     if not (os.path.exists(data_path)):

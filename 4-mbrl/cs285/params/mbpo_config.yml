@@ -56,3 +56,4 @@ mbpo_config:
     train_batch_size: 512
     video_log_freq: -1
     which_gpu: 0
+    eval_eps: 1
