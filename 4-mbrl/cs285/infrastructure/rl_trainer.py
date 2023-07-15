@@ -1,0 +1,308 @@
+from collections import OrderedDict
+import pickle
+import os
+import sys
+import time
+import gym
+from gym import wrappers
+import numpy as np
+import torch
+from cs285.agents.mb_agent import MBAgent
+from cs285.agents.mbpo_agent import MBPOAgent
+from cs285.infrastructure import pytorch_util as ptu
+from cs285.infrastructure import utils
+from cs285.infrastructure.logger import Logger
+# register all of our envs
+from cs285.envs import register_envs
+import yaml
+from datetime import datetime
+register_envs()
+
+# how many rollouts to save as videos to tensorboard
+MAX_NVIDEO = 2
+MAX_VIDEO_LEN = 40 # we overwrite this in the code below
+
+
+class RL_Trainer(object):
+
+    def __init__(self, params, trial=None):
+        #############
+        ## INIT
+        #############
+        # Get params, create logger
+        self.params = params
+        if trial is None:
+            self.logger = Logger(self.params['logdir'])
+        else:
+            self.logger = None
+        self.trial = trial #optuna
+        self.eval_idx = 0
+        self.is_pruned = False
+        # Set random seeds
+        seed = self.params['seed']
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        ptu.init_gpu(
+            use_gpu=not self.params['no_gpu'],
+            gpu_id=self.params['which_gpu']
+        )
+
+        #############
+        ## ENV
+        #############
+        self.logmetrics = True
+        # Make the gym environment
+        if self.params['video_log_freq'] == -1:
+            self.env = gym.make(self.params['env_name'])
+        else:
+            self.env = gym.make(self.params['env_name'], render_mode='rgb_array')
+
+        # self.env =
+
+        # import plotting (locally if 'obstacles' env)
+        if not(self.params['env_name']=='obstacles-cs285-v0'):
+            import matplotlib
+            matplotlib.use('Agg')
+
+        # Maximum length for episodes
+        self.params['ep_len'] = self.params['ep_len'] or self.env.spec.max_episode_steps
+
+        # Is this env continuous, or self.discrete?
+        discrete = isinstance(self.env.action_space, gym.spaces.Discrete)
+        # Are the observations images?
+        img = len(self.env.observation_space.shape) > 2
+
+        self.params['agent_params']['discrete'] = discrete
+        # Observation and action sizes
+        ob_dim = self.env.observation_space.shape if img else self.env.observation_space.shape[0]
+        ac_dim = self.env.action_space.n if discrete else self.env.action_space.shape[0]
+        self.params['agent_params']['ac_dim'] = ac_dim
+        self.params['agent_params']['ob_dim'] = ob_dim
+
+        if 'sac_params' in self.params['agent_params']:
+            self.sac_params = self.params['agent_params']['sac_params']
+            self.sac_params['discrete'] = discrete
+            self.sac_params['ac_dim'] = ac_dim
+            self.sac_params['ob_dim'] = ob_dim
+
+
+        #############
+        ## AGENT
+        #############
+
+        agent_class = self.params['agent_class']
+        self.agent = agent_class(self.env, self.params['agent_params'])
+        try:
+            self.verbose = self.params['verbose']
+        except:
+            self.verbose = True
+
+    def run_training_loop(self, n_iter, collect_policy, eval_policy,
+                          initial_expertdata=None):
+        """
+        :param n_iter:  number of (dagger) iterations
+        :param collect_policy:
+        :param eval_policy:
+        :param initial_expertdata:
+        """
+
+        # init vars at beginning of training
+        self.total_envsteps = 0
+        self.start_time = time.time()
+        print_period = 1
+
+        for itr in range(n_iter):
+            if itr % print_period == 0:
+                if self.verbose:
+                    print("\n\n********** Iteration %i ************"%itr)
+
+            # decide if videos should be rendered/logged at this iteration
+            if itr % self.params['video_log_freq'] == 0 and self.params['video_log_freq'] != -1:
+                self.log_video = True
+            else:
+                self.log_video = False
+
+            use_batchsize = self.params['batch_size']
+            if itr == 0:
+                use_batchsize = self.params['batch_size_initial']
+            paths, envsteps_this_batch, train_video_paths = (
+            self.collect_training_trajectories(
+                    itr, initial_expertdata, collect_policy, use_batchsize)
+            )
+
+            self.total_envsteps += envsteps_this_batch
+              
+            # add collected data to replay buffer
+            if isinstance(self.agent, MBAgent) or isinstance(self.agent, MBPOAgent):
+                self.agent.add_to_replay_buffer(paths, add_sl_noise=self.params['add_sl_noise'])
+            else:
+                self.agent.add_to_replay_buffer(paths)
+
+            # train agent (using sampled data from replay buffer)
+            if itr % print_period == 0:
+                if self.verbose:
+                    print("\nTraining agent...")
+            all_logs = self.train_agent()
+
+            # if doing MBPO, train the model free component
+            if isinstance(self.agent, MBPOAgent):
+                for _ in range(self.sac_params['n_iter']):
+                    if self.params['mbpo_rollout_length'] > 0:
+                        paths_im=self.agent.collect_model_trajectory(self.params['mbpo_rollout_length'])
+                        self.agent.add_to_replay_buffer(paths_im, from_model=True)
+                    # train the SAC agent
+                    self.train_sac_agent()
+            # if there is a model, log model predictions
+            if isinstance(self.agent, MBAgent) and itr == 0:
+                self.log_model_predictions(itr, all_logs)
+
+            # log/save
+            if self.logmetrics and self.trial==None:
+                # perform logging
+                if self.verbose:
+                    print('\nBeginning logging procedure...')
+                self.perform_logging(itr, paths, eval_policy, train_video_paths, all_logs)
+
+                if self.params['save_params']:
+                    self.agent.save('{}/agent_itr_{}.pt'.format(self.params['logdir'], itr))
+            if self.trial!=None:
+                self.trial_eval()
+            if self.is_pruned:
+                break
+    ####################################
+    ####################################
+
+    def collect_training_trajectories(self, itr, initial_expertdata, collect_policy, num_transitions_to_sample, save_expert_data_to_disk=False):
+        """
+        :param itr:
+        :param load_initial_expertdata:  path to expert data pkl file
+        :param collect_policy:  the current policy using which we collect data
+        :param num_transitions_to_sample:  the number of transitions we collect
+        :return:
+            paths: a list trajectories
+            envsteps_this_batch: the sum over the numbers of environment steps in paths
+            train_video_paths: paths which also contain videos for visualization purposes
+        """
+        train_video_paths=None
+        paths, envs_steps_batch = utils.sample_trajectories(self.env, collect_policy, num_transitions_to_sample, self.params['ep_len'])
+        return paths, envs_steps_batch, train_video_paths
+
+    def train_agent(self):
+        # TODO: get this from previous HW
+        all_logs=[]
+        for tr_step in range(int(self.params['num_agent_train_steps_per_iter'])):
+            ob_batch,ac_batch,rews,next_ob,terminals = self.agent.sample(self.params['train_batch_size'])
+            train_logs = self.agent.train(ob_batch,ac_batch,rews,next_ob,terminals)
+            all_logs.append(train_logs)
+        return all_logs
+
+    def train_sac_agent(self):
+        # TODO: Train the SAC component of the MBPO agent.
+        # For self.sac_params['num_agent_train_steps_per_iter']:
+        # 1) sample a batch of data of size self.sac_params['train_batch_size'] with self.agent.sample_sac
+        # 2) train the SAC agent self.agent.train_sac
+        # HINT: This will look similar to train_agent above.
+        for i in range(self.sac_params['num_agent_train_steps_per_iter']):
+            ob_no, ac_na, re_n, next_ob_no, terminal_n = self.agent.sample_sac(self.sac_params['train_batch_size'])
+            self.agent.sac_agent.train(ob_no, ac_na, re_n, next_ob_no, terminal_n)
+
+    def trial_eval(self):
+        # returns, for logging
+        # eval_paths, eval_envsteps_this_batch = utils.sample_trajectories(self.env, self.agent.sac_agent.actor, self.params['eval_batch_size'], self.params['ep_len'])
+        eval_paths = utils.sample_n_trajectories(self.env, self.agent.sac_agent.actor, 1, self.params['ep_len'])
+        eval_returns = [eval_path["reward"].sum() for eval_path in eval_paths]
+        self.last_mean_reward = np.mean(eval_returns)
+        self.eval_return = np.mean(eval_returns)
+        if self.trial != None:
+            #######################
+            self.trial.report(self.last_mean_reward, self.eval_idx)
+            self.eval_idx += 1
+            # Prune trial if need
+            if self.trial.should_prune():
+                self.is_pruned = True
+                return np.mean(eval_returns)  # stop logging
+
+    ####################################
+    def perform_logging(self, itr, paths, eval_policy, train_video_paths, all_logs):
+
+        last_log = all_logs[-1]
+        #######################
+        # collect eval trajectories, for logging
+        if self.verbose:
+            print("\nCollecting data for eval...")
+        eval_paths, eval_envsteps_this_batch = utils.sample_trajectories(self.env, eval_policy, self.params['eval_batch_size'], self.params['ep_len'])
+
+        # save eval metrics
+        if self.logmetrics:
+            # returns, for logging
+            train_returns = [path["reward"].sum() for path in paths]
+            eval_returns = [eval_path["reward"].sum() for eval_path in eval_paths]
+
+            # episode lengths, for logging
+            train_ep_lens = [len(path["reward"]) for path in paths]
+            eval_ep_lens = [len(eval_path["reward"]) for eval_path in eval_paths]
+
+            # decide what to log
+            logs = OrderedDict()
+            self.eval_return = np.mean(eval_returns)
+
+            logs["Eval_AverageReturn"] = np.mean(eval_returns)
+            logs["Eval_StdReturn"] = np.std(eval_returns)
+            logs["Eval_MaxReturn"] = np.max(eval_returns)
+            logs["Eval_MinReturn"] = np.min(eval_returns)
+            logs["Eval_AverageEpLen"] = np.mean(eval_ep_lens)
+
+            logs["Train_AverageReturn"] = np.mean(train_returns)
+            logs["Train_StdReturn"] = np.std(train_returns)
+            logs["Train_MaxReturn"] = np.max(train_returns)
+            logs["Train_MinReturn"] = np.min(train_returns)
+            logs["Train_AverageEpLen"] = np.mean(train_ep_lens)
+
+            logs["Train_EnvstepsSoFar"] = self.total_envsteps
+            logs["TimeSinceStart"] = time.time() - self.start_time
+            logs.update(last_log)
+
+            if itr == 0:
+                self.initial_return = np.mean(train_returns)
+            logs["Initial_DataCollection_AverageReturn"] = self.initial_return
+
+            # perform the logging
+            for key, value in logs.items():
+                if self.verbose:
+                    print('{} : {}'.format(key, value))# if self.verbose else '')
+                self.logger.log_scalar(value, key, itr)
+            if self.verbose:
+                print('Done logging...\n\n')
+
+            self.logger.flush()
+            return logs["Eval_AverageReturn"]
+
+    def log_model_predictions(self, itr, all_logs):
+        # model predictions
+        import matplotlib.pyplot as plt
+        self.fig = plt.figure()
+        # sample actions
+        action_sequence = self.agent.actor.sample_action_sequences(num_sequences=1, horizon=10) #20 reacher
+        action_sequence = action_sequence[0]
+
+        # calculate and log model prediction error
+        mpe, true_states, pred_states = utils.calculate_mean_prediction_error(self.env, action_sequence, self.agent.dyn_models, self.agent.actor.data_statistics)
+        assert self.params['agent_params']['ob_dim'] == true_states.shape[1] == pred_states.shape[1]
+        ob_dim = self.params['agent_params']['ob_dim']
+        ob_dim = 2*int(ob_dim/2.0) ## skip last state for plotting when state dim is odd
+
+        # plot the predictions
+        self.fig.clf()
+        for i in range(ob_dim):
+            plt.subplot(ob_dim//2, 2, i+1)
+            plt.plot(true_states[:,i], 'g')
+            plt.plot(pred_states[:,i], 'r')
+        self.fig.suptitle('MPE: ' + str(mpe))
+        self.fig.savefig(self.params['logdir']+'/itr_'+str(itr)+'_predictions.png', dpi=200, bbox_inches='tight')
+        # plot all intermediate losses during this iteration
+        all_losses = np.array([log['Training Loss'] for log in all_logs])
+        np.save(self.params['logdir']+'/itr_'+str(itr)+'_losses.npy', all_losses)
+        self.fig.clf()
+        plt.plot(all_losses)
+        self.fig.savefig(self.params['logdir']+'/itr_'+str(itr)+'_losses.png', dpi=200, bbox_inches='tight')
+
