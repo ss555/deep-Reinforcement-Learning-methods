@@ -10,7 +10,7 @@ ep_len: 1000
 eval_batch_size: 400
 exp_name: q6_fS_small
 learning_rate: 0.001
-logdir: /home/sardor/1-THESE/4-sample_code/00-current/homework_fall2022/hw4/cs285/scripts/../../data/hw4_q6_fS_small_FishStationary-v0_02-02-2023_17-35-46
+logdir: /home/sardor/1-THESE/4-sample_code/00-current/homework_fall2022/archive/cs285/scripts/../../data/hw4_q6_fS_small_FishStationary-v0_02-02-2023_17-35-46
 mbpo_rollout_length: 0
 mpc_action_sampling_strategy: random
 mpc_horizon: 10
