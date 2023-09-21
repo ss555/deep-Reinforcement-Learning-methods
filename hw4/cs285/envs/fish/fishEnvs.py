@@ -305,7 +305,6 @@ class FishMoving(gym.Env):
         else:
             self.action_space = spaces.Box(-1,1,shape=(1,),dtype=np.float32)
         self.observation_space = spaces.Box(low, high, dtype=np.float64)
-
         # Initiation of state and intermedian variables
         self.state = None
         self.avgAlpha = None
@@ -401,5 +400,3 @@ class FishMoving(gym.Env):
         if self.viewer:
             self.viewer.close()
             self.viewer = None
-
-

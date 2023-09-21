@@ -122,7 +122,7 @@ class RL_Trainer(object):
 
         # init vars at beginning of training
         self.total_envsteps = 0
-        self.start_time = time.time()
+        self.start_time = time()
         print_period = 1
 
         for itr in range(n_iter):
@@ -315,7 +315,7 @@ class RL_Trainer(object):
             logs["Train_AverageEpLen"] = np.mean(train_ep_lens)
 
             logs["Train_EnvstepsSoFar"] = self.total_envsteps
-            logs["TimeSinceStart"] = time.time() - self.start_time
+            logs["TimeSinceStart"] = time() - self.start_time
             logs.update(last_log)
 
             if itr == 0:

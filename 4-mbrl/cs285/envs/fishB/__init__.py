@@ -1,1 +1,1 @@
-from cs285.envs.fish.fishEnvs import FishStationary, FishMoving
+from cs285.envs.fish.fishEnvsO import FishStationary, FishMoving

@@ -77,7 +77,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     # Common parameters
-    parser.add_argument('--env_name', type=str) #reacher-cs285-v0, ant-cs285-v0, cheetah-cs285-v0, obstacles-cs285-v0
+    parser.add_argument('--env_name', type=str, default='cart-i3s-cont-v0') #reacher-cs285-v0, ant-cs285-v0, cheetah-cs285-v0, obstacles-cs285-v0
     parser.add_argument('--ep_len', type=int, default=1000)
     parser.add_argument('--exp_name', type=str, default='todo')
     parser.add_argument('--n_iter', '-n', type=int, default=20)
