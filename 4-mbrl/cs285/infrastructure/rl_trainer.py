@@ -122,7 +122,10 @@ class RL_Trainer(object):
 
         # init vars at beginning of training
         self.total_envsteps = 0
-        self.start_time = time()
+        try:
+            self.start_time = time.time()
+        except:
+            self.start_time = time.time()
         print_period = 1
 
         for itr in range(n_iter):
@@ -158,7 +161,7 @@ class RL_Trainer(object):
                 self.agent.add_to_replay_buffer(paths)
 
             all_logs = self.train_agent()
-
+            self.min_tr_loss=min(all_logs, key=lambda x: x['Training Loss'])
             # if doing MBPO, train the model free component
             if isinstance(self.agent, MBPOAgent):
                 print('****** Running Soft Actor Critic: ******')
@@ -286,12 +289,14 @@ class RL_Trainer(object):
                 print('\nSaving train rollouts as videos...')
             self.logger.log_paths_as_videos(train_video_paths, itr, fps=self.fps, max_videos_to_save=MAX_NVIDEO, video_title='train_rollouts')
             self.logger.log_paths_as_videos(eval_video_paths, itr, fps=self.fps,max_videos_to_save=MAX_NVIDEO, video_title='eval_rollouts')
-
+        # returns, for logging
+        train_returns = [path["reward"].sum() for path in paths]
+        if itr == 0:
+            self.initial_return = np.mean(train_returns)
 
         # save eval metrics
         if self.logmetrics:
-            # returns, for logging
-            train_returns = [path["reward"].sum() for path in paths]
+
             eval_returns = [eval_path["reward"].sum() for eval_path in eval_paths]
 
             # episode lengths, for logging
@@ -315,11 +320,10 @@ class RL_Trainer(object):
             logs["Train_AverageEpLen"] = np.mean(train_ep_lens)
 
             logs["Train_EnvstepsSoFar"] = self.total_envsteps
-            logs["TimeSinceStart"] = time() - self.start_time
+            logs["TimeSinceStart"] = time.time() - self.start_time
             logs.update(last_log)
 
-            if itr == 0:
-                self.initial_return = np.mean(train_returns)
+
             logs["Initial_DataCollection_AverageReturn"] = self.initial_return
 
             # perform the logging
