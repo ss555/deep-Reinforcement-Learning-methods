@@ -12,6 +12,7 @@ class MBAgent(BaseAgent):
         self.env = env.unwrapped
         self.agent_params = agent_params
         self.ensemble_size = self.agent_params['ensemble_size']
+
         self.dyn_models = []
         for i in range(self.ensemble_size):
             model = FFModel(
@@ -44,18 +45,23 @@ class MBAgent(BaseAgent):
         losses = []
         num_data = ob_no.shape[0]
         num_data_per_ens = int(num_data / self.ensemble_size)
-
+        ob_no = np.array_split(ob_no, self.ensemble_size)
+        ac_na = np.array_split(ac_na, self.ensemble_size)
+        re_n = np.array_split(re_n, self.ensemble_size)
+        next_ob_no = np.array_split(next_ob_no, self.ensemble_size)
+        terminal_n = np.array_split(terminal_n, self.ensemble_size)
+        
         for i in range(self.ensemble_size):
 
             # select which datapoints to use for this model of the ensemble
-            # you might find the num_data_per_env variable defined above useful
+            # you might find the num_data_per_ens variable defined above useful
 
-            observations = ob_no[num_data_per_ens*i:num_data_per_ens*(i+1)]# ODO(Q1)
-            actions = ac_na[num_data_per_ens*i:num_data_per_ens*(i+1)]# TOD(Q1)
-            next_observations = next_ob_no[num_data_per_ens*i:num_data_per_ens*(i+1)]# TDO(Q1)
+            observations = ob_no[i]
+            actions = ac_na[i]
+            next_observations = next_ob_no[i]
 
             # use datapoints to update one of the dyn_models
-            model =  self.dyn_models[i]# TOD(Q1)
+            model =  self.dyn_models[i]
             log = model.update(observations, actions, next_observations,
                                 self.data_statistics)
             loss = log['Training Loss']
@@ -82,6 +88,7 @@ class MBAgent(BaseAgent):
             'delta_std': np.std(
                 self.replay_buffer.next_obs - self.replay_buffer.obs, axis=0),
         }
+
         # update the actor's data_statistics too, so actor.get_action can be calculated correctly
         self.actor.data_statistics = self.data_statistics
 

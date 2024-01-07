@@ -1,4 +1,4 @@
-import numpy as np
+from ctypes import util
 from .base_agent import BaseAgent
 from .sac_agent import SACAgent
 from .mb_agent import MBAgent
@@ -11,6 +11,7 @@ class MBPOAgent(BaseAgent):
         self.mb_agent = MBAgent(env, agent_params)
         self.sac_agent = SACAgent(env, agent_params['sac_params'])
         self.env = env
+
         self.actor = self.sac_agent.actor
 
     def train(self, *args):
@@ -22,23 +23,23 @@ class MBPOAgent(BaseAgent):
     def collect_model_trajectory(self, rollout_length=1):
         # TODO (Q6): Collect a trajectory of rollout_length from the learned 
         # dynamics model. Start from a state sampled from the replay buffer.
+
         # sample 1 transition from self.mb_agent.replay_buffer
         ob, _, _, _, terminal = self.mb_agent.replay_buffer.sample_random_data(1)
+
         obs, acs, rewards, next_obs, terminals, image_obs = [], [], [], [], [], []
         for _ in range(rollout_length):
             # get the action from the policy
-            ac = self.sac_agent.actor.get_action(ob)
+            ac = self.actor.get_action(ob)
+            
             # determine the next observation by averaging the prediction of all the 
             # dynamics models in the ensemble
-            next_ob=np.zeros((self.mb_agent.ensemble_size,self.mb_agent.agent_params['ob_dim']))
-            for i in range(self.mb_agent.ensemble_size):
-                next_ob[i,:]=self.mb_agent.dyn_models[i].get_prediction(ob,ac,self.mb_agent.data_statistics)
-                # next_ob.append(self.mb_agent.dyn_models[i].get_prediction(ob,ac,self.mb_agent.data_statistics))
-            next_ob = np.mean(next_ob,axis=0,keepdims=True)
+            next_ob = np.mean([model.get_prediction(ob, ac, self.mb_agent.data_statistics) 
+                                                    for model in self.mb_agent.dyn_models], axis=0)
 
             # query the reward function to determine the reward of this transition
             # HINT: use self.env.get_reward
-            rew, _ = self.env.get_reward(ob,ac)
+            rew, _ = self.env.get_reward(next_ob, ac)
 
             obs.append(ob[0])
             acs.append(ac[0])
