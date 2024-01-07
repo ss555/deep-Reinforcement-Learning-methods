@@ -1,0 +1,75 @@
+debug:
+--exp_name FishMoving_rlen10 --env_name FishMovingB-v0 --add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 --batch_size 5000 --n_iter 100 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 1 --mbpo_rollout_length 10
+python scripts/run_hw4_mbpo.py --exp_name FishStationary --env_name FishStationary-v0 --add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 --batch_size 5000 --n_iter 100 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+
+
+model learning
+--exp_name FishMoving500iter1x32  --env_name FishMoving-v0 --add_sl_noise --n_iter 1 --batch_size_initial 20000 --num_agent_train_steps_per_iter 500 --n_layers 1 --size 32 --scalar_log_freq -1 --video_log_freq -1 --mpc_action_sampling_strategy random
+--exp_name FishStationary500iter2x250 --env_name FishStationary-v0  --add_sl_noise --n_iter 1 --batch_size_initial 20000 --num_agent_train_steps_per_iter 500 --n_layers 2 --size 250 --scalar_log_freq -1 --video_log_freq -1 --mpc_action_sampling_strategy random
+--exp_name FishStationary5iter2x250 --env_name FishStationary-v0  --add_sl_noise --n_iter 1 --batch_size_initial 20000 --num_agent_train_steps_per_iter 5 --n_layers 2 --size 250 --scalar_log_freq -1 --video_log_freq -1 --mpc_action_sampling_strategy random
+
+
+mbpo_rollout_length
+python scripts/run_hw4_mbpo.py --exp_name FishMoving_rlen10 --env_name FishMoving-v0 --add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 --batch_size 5000 --n_iter 100 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+python scripts/run_hw4_mbpo.py --exp_name FishStationary_rlen10 --env_name FishStationary-v0 --add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 --batch_size 5000 --n_iter 100 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+python scripts/run_hw4_mbpo.py --exp_name Stationary_rlen10 --env_name FishStationary-v0 --num_agent_train_steps_per_iter 2000 --batch_size_initial 5000 --batch_size 5000 --n_iter 10 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+
+terminal
+python scripts/run_hw4_mbpo.py --exp_name FishMovingCNNEncoderContinous-v0 --env_name 'FishMovingCNNEncoderContinous-v0' --num_agent_train_steps_per_iter 2000 --batch_size_initial 5000 --batch_size 5000 --n_iter 10 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+
+console
+python scripts/run_hw4_mbpo.py --exp_name FishMovingCNNEncoderContinous-v0 --env_name FishMovingCNNEncoderContinous-v0 --num_agent_train_steps_per_iter 2000 --batch_size_initial 5000 --batch_size 5000 --n_iter 10 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+--exp_name q1_cheetah_n500_arch1x32 --env_name cheetah-cs285-v0 --add_sl_noise --n_iter 1 --batch_size_initial 20000 --num_agent_train_steps_per_iter 500 --n_layers 1 --size 32 --scalar_log_freq -1 --video_log_freq -1 --mpc_action_sampling_strategy random
+
+python scripts/run_hw4_mbpo.py --exp_name Stationary_rlen10 --env_name FishStationary-v0 --num_agent_train_steps_per_iter 2000 --batch_size_initial 5000 --batch_size 5000 --n_iter 10 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+
+
+python cs285/scripts/run_hw4_mbpo.py --exp_name q6_cheetah_rlen10 --env_name 'cheetah-cs285-v0' \
+--add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 \
+--batch_size 5000 --n_iter 10 --video_log_freq -1 --sac_discount 0.99 \
+--sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 \
+--sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+
+
+model learning
+--exp_name FishMoving500iter1x32  --env_name FishMoving-v0 --add_sl_noise --n_iter 1 --batch_size_initial 20000 --num_agent_train_steps_per_iter 500 --n_layers 1 --size 32 --scalar_log_freq -1 --video_log_freq -1 --mpc_action_sampling_strategy random
+--exp_name FishStationary500iter2x250 --env_name FishStationary-v0  --add_sl_noise --n_iter 1 --batch_size_initial 20000 --num_agent_train_steps_per_iter 500 --n_layers 2 --size 250 --scalar_log_freq -1 --video_log_freq -1 --mpc_action_sampling_strategy random
+--exp_name FishStationary5iter2x250 --env_name FishStationary-v0  --add_sl_noise --n_iter 1 --batch_size_initial 20000 --num_agent_train_steps_per_iter 5 --n_layers 2 --size 250 --scalar_log_freq -1 --video_log_freq -1 --mpc_action_sampling_strategy random
+--exp_name FishStationary5iter2x250 --env_name FishStationaryAug-v0  --add_sl_noise --n_iter 1 --batch_size_initial 20000 --num_agent_train_steps_per_iter 5 --n_layers 2 --size 250 --scalar_log_freq -1 --video_log_freq -1 --mpc_action_sampling_strategy random
+
+
+
+mbpo_rollout_length
+python scripts/run_hw4_mbpo.py --exp_name FishMoving_rlen10 --env_name FishMoving-v0 --add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 --batch_size 5000 --n_iter 100 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+python scripts/run_hw4_mbpo.py --exp_name FishStationary_rlen10 --env_name FishStationary-v0 --add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 --batch_size 5000 --n_iter 100 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+python scripts/run_hw4_mbpo.py --exp_name FishStationaryAug_rlen10 --env_name FishStationaryAug-v0 --num_agent_train_steps_per_iter 2000 --batch_size_initial 5000 --batch_size 5000 --n_iter 10 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+
+terminal
+python scripts/run_hw4_mbpo.py --exp_name FishMovingCNNEncoderContinous-v0 --env_name 'FishMovingCNNEncoderContinous-v0' --num_agent_train_steps_per_iter 2000 --batch_size_initial 5000 --batch_size 5000 --n_iter 10 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+
+console
+python scripts/run_hw4_mbpo.py --exp_name FishMovingCNNEncoderContinous-v0 --env_name FishMovingCNNEncoderContinous-v0 --num_agent_train_steps_per_iter 2000 --batch_size_initial 5000 --batch_size 5000 --n_iter 10 --video_log_freq -1 --sac_discount 0.99 --sac_n_layers 2 --sac_size 256 --sac_batch_size 1500 --sac_learning_rate 0.0003 --sac_init_temperature 0.1 --sac_n_iter 5000 --mbpo_rollout_length 10
+--exp_name q1_cheetah_n500_arch1x32 --env_name cheetah-cs285-v0 --add_sl_noise --n_iter 1 --batch_size_initial 20000 --num_agent_train_steps_per_iter 500 --n_layers 1 --size 32 --scalar_log_freq -1 --video_log_freq -1 --mpc_action_sampling_strategy random
+
+hw4 q5:
+python cs285/scripts/run_hw4_mb.py --exp_name q5_cheetah_cem_2 --env_name 'cheetah-cs285-v0' --mpc_horizon 15 --add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 --batch_size 5000 --n_iter 5 --video_log_freq -1 --mpc_action_sampling_strategy 'cem' --cem_iterations 2
+python cs285/scripts/run_hw4_mb.py --exp_name FishStationaryAug --env_name 'FishStationaryAug-v0' --mpc_horizon 15 --add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 --batch_size 5000 --n_iter 5 --video_log_freq -1 --mpc_action_sampling_strategy 'cem' --cem_iterations 2
+python cs285/scripts/run_hw4_mb.py --exp_name FishMoving --env_name 'FishMoving-v0' --mpc_horizon 15 --add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 --batch_size 5000 --n_iter 5 --video_log_freq -1 --mpc_action_sampling_strategy 'cem' --cem_iterations 4
+
+hw5:
+python cs285/scripts/run_hw5_expl.py --env_name PointmassEasy-v0 --use_rnd --unsupervised_exploration --exp_name q1_env1_rnd
+python cs285/scripts/run_hw5_expl.py --env_name PointmassMedium-v0 --exp_name q2_cql --use_rnd --unsupervised_exploration --offline_exploitation --cql_alpha=0.1
+OFFLINE
+python cs285/scripts/run_hw5_awac.py --env_name PointmassEasy-v0 --exp_name q4_awac_easy_unsupervised_lam0.1 --use_rnd --num_exploration_steps=20000 --unsupervised_exploration --awac_lambda=0.1
+
+
+HW2:advantage
+python cs285/scripts/run_hw2.py \
+--env_name Hopper-v2 --ep_len 1000
+--discount 0.99 -n 300 -l 2 -s 32 -b 2000 -lr 0.001 \
+--reward_to_go --nn_baseline --action_noise_std 0.5 --gae_lambda 0.95 \
+--exp_name q5_b2000_r0.001_lambda0.95
+
+python cs285/scripts/run_hw2.py --env_name Hopper-v2 --ep_len 1000 --discount 0.99 -n 300 -l 2 -s 32 -b 2000 -lr 0.001 --reward_to_go --nn_baseline --action_noise_std 0.5 --gae_lambda 0.99 --exp_name q5_b2000_r0.001_lambda0.99
+
+--exp_name q5_cheetah_cem_4 --env_name FishMoving-v0 --mpc_horizon 15 --add_sl_noise --num_agent_train_steps_per_iter 1500 --batch_size_initial 5000 --batch_size 5000 --n_iter 5 --video_log_freq -1 --mpc_action_sampling_strategy cem --cem_iterations 4
